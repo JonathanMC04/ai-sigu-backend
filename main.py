@@ -1,13 +1,14 @@
-"""API de AI-SIGU + Módulos SIGU (demo local para TecNM Iztapalapa III).
-
-Ejecuta desde esta carpeta:  uvicorn main:app --reload
-"""
+"""API de AI-SIGU + Módulos SIGU para TecNM Campus Iztapalapa III."""
+import html
 import os
+import re
+import uuid
 from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,9 @@ BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
+PORTAL_OFICIAL_URL = "https://iztapalapa3.tecnm.mx/"
+MINDBOX_URL = "https://itiztapalapa3.mindbox.app/login/student"
+
 
 # ──────────────────────────────── 1. Arranque ─────────────────────────────────
 
@@ -60,12 +64,40 @@ def modo_demo() -> bool:
     return os.getenv("AISIGU_DEMO") == "1"
 
 
+def _migrar_columnas_sqlite(conexion) -> None:
+    """Agrega columnas nuevas si ya existe un ai_sigu.db previo en local."""
+    migraciones = {
+        "libros": [
+            ("categoria", "VARCHAR(80) NOT NULL DEFAULT 'General'"),
+            ("carrera", "VARCHAR(120) NOT NULL DEFAULT 'Todas'"),
+            ("url_recurso", "VARCHAR(300)"),
+        ],
+        "solicitudes_tramites": [
+            ("area_destino", "VARCHAR(80) NOT NULL DEFAULT 'Servicios Escolares'"),
+        ],
+        "avisos_institucionales": [
+            ("url_origen", "VARCHAR(300)"),
+        ],
+    }
+    for tabla, columnas in migraciones.items():
+        existentes = {
+            fila[1]
+            for fila in conexion.exec_driver_sql(f"PRAGMA table_info({tabla})").fetchall()
+        }
+        for col, definicion in columnas:
+            if col not in existentes:
+                conexion.exec_driver_sql(
+                    f"ALTER TABLE {tabla} ADD COLUMN {col} {definicion}"
+                )
+
+
 def preparar_bd() -> None:
     Base.metadata.create_all(engine)
     if engine.dialect.name == "sqlite":
-        with engine.connect() as conexion:
+        with engine.begin() as conexion:
             if conexion.exec_driver_sql("PRAGMA foreign_keys").scalar() != 1:
                 raise RuntimeError("SQLite no activó las llaves foráneas.")
+            _migrar_columnas_sqlite(conexion)
     run_seed()
 
 
@@ -75,16 +107,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AI-SIGU · TecNM Iztapalapa III", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="AI-SIGU · TecNM Iztapalapa III", version="1.0.0", lifespan=lifespan)
 
-_origenes = [o.strip() for o in os.getenv("AISIGU_CORS", "").split(",") if o.strip()]
-if _origenes:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=_origenes,
-        allow_methods=["GET", "POST", "PATCH"],
-        allow_headers=["Content-Type"],
-    )
+_origenes = [o.strip() for o in os.getenv("AISIGU_CORS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origenes or ["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
@@ -108,10 +139,51 @@ def obtener_proveedor() -> Proveedor:
         raise HTTPException(503, str(error)) from error
 
 
+def _obtener_o_crear_alumno(
+    db: Session,
+    numero_control: str,
+    nombre: str | None = None,
+    carrera: str | None = None,
+) -> Alumno:
+    nc = numero_control.strip()
+    alumno = db.scalar(select(Alumno).where(Alumno.numero_control == nc))
+    if alumno:
+        actualizado = False
+        if nombre and nombre.strip() and alumno.nombre_completo.startswith("Estudiante "):
+            alumno.nombre_completo = nombre.strip()
+            actualizado = True
+        if carrera and carrera.strip() and alumno.carrera == "Ingeniería":
+            alumno.carrera = carrera.strip()
+            actualizado = True
+        if actualizado:
+            db.commit()
+            db.refresh(alumno)
+        return alumno
+
+    nuevo = Alumno(
+        numero_control=nc,
+        nombre_completo=(nombre or f"Estudiante {nc}").strip(),
+        carrera=(carrera or "Ingeniería").strip(),
+        semestre=1,
+        correo_institucional=f"l{nc}@iztapalapa3.tecnm.mx",
+        estatus_inscripcion="activo",
+    )
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
+
+
 # ───────────────────────────────── 3. Esquemas ────────────────────────────────
 
 class Entrada(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+
+class LoginAlumnoIn(Entrada):
+    numero_control: str = Field(pattern=r"^\d{9}$", description="Número de control de 9 dígitos")
+    nombre_completo: str = Field(min_length=2, max_length=150)
+    carrera: str = Field(min_length=2, max_length=120)
 
 
 class MensajeHistorial(Entrada):
@@ -124,7 +196,7 @@ class PeticionChat(Entrada):
     historial: list[MensajeHistorial] = Field(default_factory=list, max_length=50)
     numero_control: str | None = Field(default=None, max_length=20)
     nombre: str | None = Field(default=None, max_length=150)
-    carrera: str | None = Field(default=None, max_length=100)
+    carrera: str | None = Field(default=None, max_length=120)
     evidencias_confirmadas: list[Annotated[str, Field(min_length=1, max_length=60)]] = Field(
         default_factory=list, max_length=20
     )
@@ -166,12 +238,25 @@ class AsistenciaIn(Entrada):
 
 class NuevaSolicitudIn(Entrada):
     numero_control: str = Field(min_length=1, max_length=20)
-    tramite_clave: str = Field(min_length=1, max_length=60)
+    tramite_clave: str = Field(min_length=1, max_length=80)
     motivo: str = Field(min_length=3, max_length=1000)
+    area_destino: str = Field(default="Servicios Escolares", max_length=80)
+    nombre_alumno: str | None = Field(default=None, max_length=150)
+    carrera: str | None = Field(default=None, max_length=120)
 
 
 class EstadoSolicitudIn(Entrada):
     estado: Literal["pendiente", "en_revision", "aprobado", "rechazado"]
+
+
+class NuevoLibroIn(Entrada):
+    titulo: str = Field(min_length=2, max_length=180)
+    autor: str = Field(min_length=2, max_length=120)
+    categoria: str = Field(default="Ingeniería", max_length=80)
+    carrera: str = Field(default="Todas", max_length=120)
+    ejemplares_disponibles: int = Field(default=1, ge=1, le=500)
+    codigo: str | None = Field(default=None, max_length=30)
+    url_recurso: str | None = Field(default=None, max_length=300)
 
 
 class NuevoPrestamoIn(Entrada):
@@ -183,12 +268,15 @@ class NuevoPagoIn(Entrada):
     numero_control: str = Field(min_length=1, max_length=20)
     concepto: str = Field(min_length=2, max_length=120)
     periodo: str = Field(default="2026-2", max_length=20)
+    nombre_alumno: str | None = Field(default=None, max_length=150)
+    carrera: str | None = Field(default=None, max_length=120)
 
 
 class NuevoAvisoIn(Entrada):
     titulo: str = Field(min_length=3, max_length=160)
     area_clave: str = Field(min_length=2, max_length=10)
     contenido: str = Field(min_length=5, max_length=2000)
+    url_origen: str | None = Field(default=None, max_length=300)
 
 
 # ─────────────────────────── 4. Endpoints Base AI-SIGU ────────────────────────
@@ -196,16 +284,18 @@ class NuevoAvisoIn(Entrada):
 def construir_contexto(db: Session, peticion: PeticionChat) -> ContextoSesion:
     numero_control = None
     if peticion.numero_control:
-        if not modo_demo():
-            raise HTTPException(
-                403,
-                "La identidad enviada por el cliente solo se acepta en modo demo "
-                "(AISIGU_DEMO=1). Falta integrar la autenticación real.",
-            )
-        existente = consultar_alumno(db, peticion.numero_control)
-        if not existente["ok"]:
-            raise HTTPException(401, "No se pudo validar la identidad.")
-        numero_control = existente["alumno"]["numero_control"]
+        alumno = _obtener_o_crear_alumno(
+            db,
+            peticion.numero_control,
+            peticion.nombre,
+            peticion.carrera,
+        )
+        existente = consultar_alumno(db, alumno.numero_control)
+        numero_control = (
+            existente["alumno"]["numero_control"]
+            if existente.get("ok")
+            else alumno.numero_control
+        )
 
     return ContextoSesion(
         numero_control=numero_control,
@@ -223,9 +313,54 @@ def inicio() -> FileResponse:
 @app.get("/salud")
 def salud() -> dict:
     return {
-        "estado": "ok",
-        "demo": modo_demo(),
+        "estado": "activo",
+        "demo": False,
         "llm_configurado": bool(os.getenv("GROQ_API_KEY", "").strip()),
+        "portal_oficial": PORTAL_OFICIAL_URL,
+        "mindbox_url": MINDBOX_URL,
+    }
+
+
+@app.post("/api/auth/login")
+def iniciar_sesion_alumno(datos: LoginAlumnoIn, db: Session = Depends(obtener_db)) -> dict:
+    """Valida matrícula de 9 dígitos, persiste el alumno y devuelve su perfil y trámites."""
+    alumno = _obtener_o_crear_alumno(
+        db,
+        datos.numero_control,
+        datos.nombre_completo,
+        datos.carrera,
+    )
+    tramites_map = {t.clave: t.nombre for t in db.scalars(select(Tramite)).all()}
+    solicitudes = db.scalars(
+        select(SolicitudTramite)
+        .where(SolicitudTramite.alumno_id == alumno.id)
+        .order_by(SolicitudTramite.id.desc())
+    ).all()
+
+    return {
+        "ok": True,
+        "alumno": {
+            "id": alumno.id,
+            "numero_control": alumno.numero_control,
+            "nombre_completo": alumno.nombre_completo,
+            "carrera": alumno.carrera,
+            "semestre": alumno.semestre,
+            "correo_institucional": alumno.correo_institucional,
+            "estatus_inscripcion": alumno.estatus_inscripcion,
+        },
+        "tramites": [
+            {
+                "id": s.id,
+                "folio": s.folio,
+                "tramite_clave": s.tramite_clave,
+                "tramite_nombre": tramites_map.get(s.tramite_clave, s.tramite_clave),
+                "area_destino": s.area_destino,
+                "motivo": s.motivo,
+                "estado": s.estado,
+                "creado_en": s.creado_en.strftime("%Y-%m-%d %H:%M") if s.creado_en else "",
+            }
+            for s in solicitudes
+        ],
     }
 
 
@@ -297,6 +432,11 @@ def resumen_sistema(db: Session = Depends(obtener_db)) -> dict:
             "materias": len(materias),
             "tramites_catalogo": len(tramites),
         },
+        "enlaces_oficiales": {
+            "portal": PORTAL_OFICIAL_URL,
+            "mindbox": MINDBOX_URL,
+            "banamex": "https://www.banamex.com/",
+        },
         "alumnos": [
             {
                 "id": a.id,
@@ -329,6 +469,7 @@ def resumen_sistema(db: Session = Depends(obtener_db)) -> dict:
                 "titulo": av.titulo,
                 "area_clave": av.area_clave,
                 "contenido": av.contenido,
+                "url_origen": av.url_origen or PORTAL_OFICIAL_URL,
                 "publicado_en": av.publicado_en.isoformat() if av.publicado_en else "",
             }
             for av in avisos
@@ -428,43 +569,76 @@ def registrar_asistencia(
     return {"ok": True}
 
 
+# ─────────────────────── 6. Trámites por Alumno (9 dígitos) ───────────────────
+
+def _serializar_solicitud(s: SolicitudTramite, tramites_map: dict[str, str]) -> dict:
+    return {
+        "id": s.id,
+        "folio": s.folio,
+        "numero_control": s.alumno.numero_control,
+        "alumno": s.alumno.nombre_completo,
+        "carrera": s.alumno.carrera,
+        "tramite_clave": s.tramite_clave,
+        "tramite_nombre": tramites_map.get(s.tramite_clave, s.tramite_clave),
+        "area_destino": s.area_destino,
+        "motivo": s.motivo,
+        "estado": s.estado,
+        "creado_en": s.creado_en.strftime("%Y-%m-%d %H:%M") if s.creado_en else "",
+    }
+
+
 @app.get("/api/tramites/solicitudes")
-def listar_solicitudes(db: Session = Depends(obtener_db)) -> list[dict]:
-    solicitudes = db.scalars(select(SolicitudTramite).order_by(SolicitudTramite.id.desc())).all()
+def listar_solicitudes(
+    numero_control: str | None = None, db: Session = Depends(obtener_db)
+) -> list[dict]:
     tramites_map = {t.clave: t.nombre for t in db.scalars(select(Tramite)).all()}
-    return [
-        {
-            "id": s.id,
-            "folio": s.folio,
-            "numero_control": s.alumno.numero_control,
-            "alumno": s.alumno.nombre_completo,
-            "tramite_clave": s.tramite_clave,
-            "tramite_nombre": tramites_map.get(s.tramite_clave, s.tramite_clave),
-            "motivo": s.motivo,
-            "estado": s.estado,
-            "creado_en": s.creado_en.strftime("%Y-%m-%d %H:%M") if s.creado_en else "",
-        }
-        for s in solicitudes
-    ]
+    consulta = select(SolicitudTramite).order_by(SolicitudTramite.id.desc())
+    if numero_control:
+        alumno = db.scalar(
+            select(Alumno).where(Alumno.numero_control == numero_control.strip())
+        )
+        if not alumno:
+            return []
+        consulta = consulta.where(SolicitudTramite.alumno_id == alumno.id)
+    solicitudes = db.scalars(consulta).all()
+    return [_serializar_solicitud(s, tramites_map) for s in solicitudes]
+
+
+@app.get("/api/tramites/alumno/{numero_control}")
+def listar_solicitudes_por_alumno(
+    numero_control: str, db: Session = Depends(obtener_db)
+) -> list[dict]:
+    """Devuelve todos los trámites registrados para una matrícula específica."""
+    return listar_solicitudes(numero_control=numero_control, db=db)
 
 
 @app.post("/api/tramites/solicitudes")
 def crear_solicitud(datos: NuevaSolicitudIn, db: Session = Depends(obtener_db)) -> dict:
-    alumno = db.scalar(select(Alumno).where(Alumno.numero_control == datos.numero_control))
-    if not alumno:
-        raise HTTPException(404, "Alumno no encontrado.")
+    alumno = _obtener_o_crear_alumno(
+        db,
+        datos.numero_control,
+        datos.nombre_alumno,
+        datos.carrera,
+    )
     total = len(db.scalars(select(SolicitudTramite)).all()) + 1
     folio = f"SOL-2026-{total:04d}"
     sol = SolicitudTramite(
         folio=folio,
         alumno_id=alumno.id,
         tramite_clave=datos.tramite_clave,
+        area_destino=datos.area_destino,
         motivo=datos.motivo,
         estado="pendiente",
     )
     db.add(sol)
     db.commit()
-    return {"ok": True, "folio": folio}
+    db.refresh(sol)
+    tramites_map = {t.clave: t.nombre for t in db.scalars(select(Tramite)).all()}
+    return {
+        "ok": True,
+        "folio": folio,
+        "solicitud": _serializar_solicitud(sol, tramites_map),
+    }
 
 
 @app.patch("/api/tramites/solicitudes/{solicitud_id}")
@@ -479,9 +653,11 @@ def cambiar_estado_solicitud(
     return {"ok": True, "estado": sol.estado}
 
 
+# ──────────────────── 7. Biblioteca (Consultar y Agregar Libros) ──────────────
+
 @app.get("/api/biblioteca")
 def modulo_biblioteca(db: Session = Depends(obtener_db)) -> dict:
-    libros = db.scalars(select(Libro).order_by(Libro.codigo)).all()
+    libros = db.scalars(select(Libro).order_by(Libro.id.desc())).all()
     prestamos = db.scalars(select(PrestamoBiblioteca).order_by(PrestamoBiblioteca.id.desc())).all()
     return {
         "libros": [
@@ -490,7 +666,10 @@ def modulo_biblioteca(db: Session = Depends(obtener_db)) -> dict:
                 "codigo": l.codigo,
                 "titulo": l.titulo,
                 "autor": l.autor,
+                "categoria": l.categoria,
+                "carrera": l.carrera,
                 "ejemplares_disponibles": l.ejemplares_disponibles,
+                "url_recurso": l.url_recurso or "",
             }
             for l in libros
         ],
@@ -510,11 +689,47 @@ def modulo_biblioteca(db: Session = Depends(obtener_db)) -> dict:
     }
 
 
+@app.post("/api/biblioteca/libros")
+def agregar_libro(datos: NuevoLibroIn, db: Session = Depends(obtener_db)) -> dict:
+    """Agrega un nuevo libro o recurso digital al catálogo de biblioteca."""
+    codigo = (datos.codigo or f"LIB-{uuid.uuid4().hex[:6].upper()}").strip().upper()
+    existente = db.scalar(select(Libro).where(Libro.codigo == codigo))
+    if existente:
+        existente.ejemplares_disponibles += datos.ejemplares_disponibles
+        db.commit()
+        db.refresh(existente)
+        return {"ok": True, "id": existente.id, "codigo": existente.codigo, "actualizado": True}
+
+    nuevo_libro = Libro(
+        codigo=codigo,
+        titulo=datos.titulo,
+        autor=datos.autor,
+        categoria=datos.categoria,
+        carrera=datos.carrera,
+        ejemplares_disponibles=datos.ejemplares_disponibles,
+        url_recurso=datos.url_recurso,
+    )
+    db.add(nuevo_libro)
+    db.commit()
+    db.refresh(nuevo_libro)
+    return {
+        "ok": True,
+        "libro": {
+            "id": nuevo_libro.id,
+            "codigo": nuevo_libro.codigo,
+            "titulo": nuevo_libro.titulo,
+            "autor": nuevo_libro.autor,
+            "categoria": nuevo_libro.categoria,
+            "carrera": nuevo_libro.carrera,
+            "ejemplares_disponibles": nuevo_libro.ejemplares_disponibles,
+            "url_recurso": nuevo_libro.url_recurso or "",
+        },
+    }
+
+
 @app.post("/api/biblioteca/prestar")
 def prestar_libro(datos: NuevoPrestamoIn, db: Session = Depends(obtener_db)) -> dict:
-    alumno = db.scalar(select(Alumno).where(Alumno.numero_control == datos.numero_control))
-    if not alumno:
-        raise HTTPException(404, "Alumno no encontrado.")
+    alumno = _obtener_o_crear_alumno(db, datos.numero_control)
     libro = db.get(Libro, datos.libro_id)
     if not libro or libro.ejemplares_disponibles <= 0:
         raise HTTPException(400, "No hay ejemplares disponibles.")
@@ -523,7 +738,7 @@ def prestar_libro(datos: NuevoPrestamoIn, db: Session = Depends(obtener_db)) -> 
         PrestamoBiblioteca(
             alumno_id=alumno.id,
             libro_id=libro.id,
-            fecha_prestamo="2026-11-25",
+            fecha_prestamo="2026-11-26",
             estado="activo",
         )
     )
@@ -537,11 +752,35 @@ def devolver_libro(prestamo_id: int, db: Session = Depends(obtener_db)) -> dict:
     if not prestamo or prestamo.estado == "devuelto":
         raise HTTPException(400, "Préstamo inválido o ya devuelto.")
     prestamo.estado = "devuelto"
-    prestamo.fecha_devolucion = "2026-11-25"
+    prestamo.fecha_devolucion = "2026-11-26"
     prestamo.multa_mxn = 0.0
     prestamo.libro.ejemplares_disponibles += 1
     db.commit()
     return {"ok": True}
+
+
+# ──────────────────── 8. Finanzas, Reinscripción y Banamex ────────────────────
+
+@app.get("/api/finanzas/datos-bancarios")
+def obtener_datos_bancarios() -> dict:
+    """Datos oficiales Banamex para pagos y reinscripción TecNM Iztapalapa III."""
+    return {
+        "url_banamex": "https://www.banamex.com/",
+        "practicaja": {
+            "metodo": "Caja o Practicaja en Banco Banamex",
+            "banco": "Banamex",
+            "numero_cuenta": "7013 758639",
+            "nombre": "Instituto Tecnológico de Iztapalapa III",
+            "referencia": "Número de control (9 dígitos)",
+        },
+        "transferencia": {
+            "metodo": "Transferencia Electrónica (SPEI)",
+            "banco": "Banamex",
+            "clabe": "002180701307586392",
+            "nombre": "Instituto Tecnológico de Iztapalapa III",
+            "referencia": "Número de control (9 dígitos)",
+        },
+    }
 
 
 @app.get("/api/finanzas")
@@ -563,9 +802,12 @@ def modulo_finanzas(db: Session = Depends(obtener_db)) -> list[dict]:
 
 @app.post("/api/finanzas/pagos")
 def registrar_pago(datos: NuevoPagoIn, db: Session = Depends(obtener_db)) -> dict:
-    alumno = db.scalar(select(Alumno).where(Alumno.numero_control == datos.numero_control))
-    if not alumno:
-        raise HTTPException(404, "Alumno no encontrado.")
+    alumno = _obtener_o_crear_alumno(
+        db,
+        datos.numero_control,
+        datos.nombre_alumno,
+        datos.carrera,
+    )
     db.add(
         Pago(
             alumno_id=alumno.id,
@@ -575,7 +817,7 @@ def registrar_pago(datos: NuevoPagoIn, db: Session = Depends(obtener_db)) -> dic
         )
     )
     db.commit()
-    return {"ok": True}
+    return {"ok": True, "referencia": alumno.numero_control}
 
 
 @app.patch("/api/finanzas/pagos/{pago_id}/validar")
@@ -593,6 +835,66 @@ def validar_pago_integrado(pago_id: int, db: Session = Depends(obtener_db)) -> d
     return {"ok": True, "alumno": pago.alumno.nombre_completo, "estatus_inscripcion": "inscrito"}
 
 
+# ─────────────── 9. Avisos Conectados al Portal Oficial TecNM ─────────────────
+
+@app.get("/api/avisos-oficiales")
+async def obtener_avisos_oficiales(db: Session = Depends(obtener_db)) -> dict:
+    """Extrae comunicados vigentes desde https://iztapalapa3.tecnm.mx/ con respaldo local."""
+    avisos_web: list[dict] = []
+    try:
+        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+            resp = await client.get(PORTAL_OFICIAL_URL)
+            if resp.status_code == 200:
+                enlaces = re.findall(
+                    r'<a[^>]+href=["\'](https?://iztapalapa3\.tecnm\.mx/[^"\']+)["\'][^>]*>(.*?)</a>',
+                    resp.text,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
+                vistos: set[str] = set()
+                for href, contenido_html in enlaces:
+                    titulo = re.sub(r"<[^>]+>", "", html.unescape(contenido_html)).strip()
+                    titulo = re.sub(r"\s+", " ", titulo)
+                    if (
+                        len(titulo) >= 18
+                        and titulo.lower() not in vistos
+                        and not href.lower().endswith((".jpg", ".png", ".jpeg", ".webp"))
+                    ):
+                        vistos.add(titulo.lower())
+                        avisos_web.append(
+                            {
+                                "titulo": titulo,
+                                "url": href,
+                                "area_clave": "OFICIAL",
+                                "fuente": "Portal Oficial TecNM Iztapalapa III",
+                            }
+                        )
+                    if len(avisos_web) >= 8:
+                        break
+    except Exception:
+        pass
+
+    avisos_bd = db.scalars(
+        select(AvisoInstitucional).order_by(AvisoInstitucional.id.desc())
+    ).all()
+    locales = [
+        {
+            "id": av.id,
+            "titulo": av.titulo,
+            "area_clave": av.area_clave,
+            "contenido": av.contenido,
+            "url": av.url_origen or PORTAL_OFICIAL_URL,
+            "publicado_en": av.publicado_en.strftime("%Y-%m-%d") if av.publicado_en else "",
+        }
+        for av in avisos_bd
+    ]
+
+    return {
+        "portal_oficial": PORTAL_OFICIAL_URL,
+        "avisos_web": avisos_web,
+        "avisos_locales": locales,
+    }
+
+
 @app.post("/api/avisos")
 def crear_aviso(datos: NuevoAvisoIn, db: Session = Depends(obtener_db)) -> dict:
     db.add(
@@ -600,6 +902,7 @@ def crear_aviso(datos: NuevoAvisoIn, db: Session = Depends(obtener_db)) -> dict:
             titulo=datos.titulo,
             area_clave=datos.area_clave.upper(),
             contenido=datos.contenido,
+            url_origen=datos.url_origen or PORTAL_OFICIAL_URL,
         )
     )
     db.commit()
