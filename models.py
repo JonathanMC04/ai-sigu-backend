@@ -57,9 +57,9 @@ class Alumno(Base):
     numero_control: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     nombre_completo: Mapped[str] = mapped_column(String(150), nullable=False)
     carrera: Mapped[str] = mapped_column(String(120), nullable=False)
-    semestre: Mapped[int] = mapped_column(Integer, nullable=False)
+    semestre: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     correo_institucional: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    estatus_inscripcion: Mapped[str] = mapped_column(String(30), default="no_inscrito", nullable=False)
+    estatus_inscripcion: Mapped[str] = mapped_column(String(30), default="activo", nullable=False)
 
     pagos: Mapped[list["Pago"]] = relationship(back_populates="alumno", cascade="all, delete-orphan")
     inscripciones: Mapped[list["Inscripcion"]] = relationship(back_populates="alumno", cascade="all, delete-orphan")
@@ -78,6 +78,7 @@ class Pago(Base):
 
     alumno: Mapped["Alumno"] = relationship(back_populates="pagos")
 
+
 class Folio(Base):
     __tablename__ = "folios"
 
@@ -87,6 +88,8 @@ class Folio(Base):
     alumno_id: Mapped[int | None] = mapped_column(ForeignKey("alumnos.id"), nullable=True)
     estado: Mapped[str] = mapped_column(String(30), default="borrador", nullable=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
+
+
 # ────────────────────── Nuevos modelos SIGU (módulos) ──────────────────────
 
 class Docente(Base):
@@ -149,7 +152,10 @@ class Libro(Base):
     codigo: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     titulo: Mapped[str] = mapped_column(String(180), nullable=False)
     autor: Mapped[str] = mapped_column(String(120), nullable=False)
+    categoria: Mapped[str] = mapped_column(String(80), default="General", nullable=False)
+    carrera: Mapped[str] = mapped_column(String(120), default="Todas", nullable=False)
     ejemplares_disponibles: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    url_recurso: Mapped[str | None] = mapped_column(String(300), nullable=True)
 
     prestamos: Mapped[list["PrestamoBiblioteca"]] = relationship(back_populates="libro", cascade="all, delete-orphan")
 
@@ -176,6 +182,7 @@ class SolicitudTramite(Base):
     folio: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     alumno_id: Mapped[int] = mapped_column(ForeignKey("alumnos.id"), nullable=False)
     tramite_clave: Mapped[str] = mapped_column(String(60), nullable=False)
+    area_destino: Mapped[str] = mapped_column(String(80), default="Servicios Escolares", nullable=False)
     motivo: Mapped[str] = mapped_column(Text, nullable=False)
     estado: Mapped[str] = mapped_column(String(30), default="pendiente", nullable=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
@@ -190,4 +197,5 @@ class AvisoInstitucional(Base):
     titulo: Mapped[str] = mapped_column(String(160), nullable=False)
     area_clave: Mapped[str] = mapped_column(String(10), nullable=False)
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
+    url_origen: Mapped[str | None] = mapped_column(String(300), nullable=True)
     publicado_en: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
