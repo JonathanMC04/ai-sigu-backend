@@ -107,7 +107,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="AI-SIGU · TecNM Iztapalapa III", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="AI-SIGU · TecNM Iztapalapa III", version="1.1.0", lifespan=lifespan)
 
 _origenes = [o.strip() for o in os.getenv("AISIGU_CORS", "*").split(",") if o.strip()]
 app.add_middleware(
@@ -139,6 +139,45 @@ def obtener_proveedor() -> Proveedor:
         raise HTTPException(503, str(error)) from error
 
 
+def _asignar_carga_inicial_si_vacia(db: Session, alumno: Alumno) -> None:
+    """Vincula materias históricas y del semestre actual con sus profesores al alumno."""
+    tiene_inscripciones = db.scalar(
+        select(Inscripcion.id).where(Inscripcion.alumno_id == alumno.id)
+    )
+    if tiene_inscripciones:
+        return
+
+    materias = db.scalars(
+        select(Materia).order_by(Materia.semestre_sugerido, Materia.clave)
+    ).all()
+    if not materias:
+        return
+
+    calificaciones_base = [92.0, 88.0, 85.0]
+    for idx, mat in enumerate(materias[:5]):
+        if idx < 3:
+            db.add(
+                Inscripcion(
+                    alumno_id=alumno.id,
+                    materia_id=mat.id,
+                    periodo="2026-1",
+                    calificacion_final=calificaciones_base[idx],
+                    estado="aprobada",
+                )
+            )
+        else:
+            db.add(
+                Inscripcion(
+                    alumno_id=alumno.id,
+                    materia_id=mat.id,
+                    periodo="2026-2",
+                    calificacion_final=None,
+                    estado="cursando",
+                )
+            )
+    db.commit()
+
+
 def _obtener_o_crear_alumno(
     db: Session,
     numero_control: str,
@@ -158,20 +197,64 @@ def _obtener_o_crear_alumno(
         if actualizado:
             db.commit()
             db.refresh(alumno)
+        _asignar_carga_inicial_si_vacia(db, alumno)
         return alumno
 
     nuevo = Alumno(
         numero_control=nc,
         nombre_completo=(nombre or f"Estudiante {nc}").strip(),
         carrera=(carrera or "Ingeniería").strip(),
-        semestre=1,
+        semestre=3,
         correo_institucional=f"l{nc}@iztapalapa3.tecnm.mx",
-        estatus_inscripcion="activo",
+        estatus_inscripcion="inscrito",
     )
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
+    _asignar_carga_inicial_si_vacia(db, nuevo)
     return nuevo
+
+
+def _construir_kardex_alumno(db: Session, alumno: Alumno) -> list[dict]:
+    inscripciones = db.scalars(
+        select(Inscripcion)
+        .where(Inscripcion.alumno_id == alumno.id)
+        .order_by(Inscripcion.id)
+    ).all()
+
+    kardex = []
+    for ins in inscripciones:
+        mat = ins.materia
+        docente_nombre = (
+            mat.docente.nombre_completo if mat and mat.docente else "Por asignar"
+        )
+        docente_correo = mat.docente.correo if mat and mat.docente else ""
+        if ins.estado == "aprobada":
+            etiqueta_estado = "Aprobada"
+        elif ins.estado == "reprobada":
+            etiqueta_estado = "Reprobada"
+        elif ins.estado == "cursando":
+            etiqueta_estado = "Cursando"
+        else:
+            etiqueta_estado = "Pendiente de pago"
+
+        kardex.append(
+            {
+                "id": ins.id,
+                "materia_id": mat.id if mat else 0,
+                "clave": mat.clave if mat else "",
+                "materia": mat.nombre if mat else "",
+                "docente": docente_nombre,
+                "correo_docente": docente_correo,
+                "horario": mat.horario if mat else "",
+                "semestre": mat.semestre_sugerido if mat else 1,
+                "periodo": ins.periodo,
+                "calificacion": ins.calificacion_final,
+                "creditos": mat.creditos if mat else 5,
+                "estado": etiqueta_estado,
+            }
+        )
+    return kardex
 
 
 # ───────────────────────────────── 3. Esquemas ────────────────────────────────
@@ -283,6 +366,8 @@ class NuevoAvisoIn(Entrada):
 
 def construir_contexto(db: Session, peticion: PeticionChat) -> ContextoSesion:
     numero_control = None
+    resumen_academico = peticion.carrera or ""
+
     if peticion.numero_control:
         alumno = _obtener_o_crear_alumno(
             db,
@@ -297,10 +382,25 @@ def construir_contexto(db: Session, peticion: PeticionChat) -> ContextoSesion:
             else alumno.numero_control
         )
 
+        kardex = _construir_kardex_alumno(db, alumno)
+        califs = [m["calificacion"] for m in kardex if m["calificacion"] is not None]
+        promedio = round(sum(califs) / len(califs), 2) if califs else 0.0
+        creditos = sum(
+            m["creditos"] for m in kardex if m["estado"] == "Aprobada"
+        )
+        detalle_materias = "; ".join(
+            f"{m['materia']} ({m['clave']}) - Calif: {m['calificacion'] if m['calificacion'] is not None else 'Cursando'} - Prof: {m['docente']} ({m['horario']})"
+            for m in kardex
+        )
+        resumen_academico = (
+            f"{peticion.carrera or alumno.carrera} | Promedio general: {promedio} | "
+            f"Créditos aprobados: {creditos} | Kardex y profesores del semestre: [{detalle_materias}]"
+        )
+
     return ContextoSesion(
         numero_control=numero_control,
         nombre=peticion.nombre,
-        carrera=peticion.carrera,
+        carrera=resumen_academico,
         evidencias_confirmadas=frozenset(peticion.evidencias_confirmadas),
     )
 
@@ -323,7 +423,7 @@ def salud() -> dict:
 
 @app.post("/api/auth/login")
 def iniciar_sesion_alumno(datos: LoginAlumnoIn, db: Session = Depends(obtener_db)) -> dict:
-    """Valida matrícula de 9 dígitos, persiste el alumno y devuelve su perfil y trámites."""
+    """Valida matrícula de 9 dígitos, persiste el alumno y devuelve su perfil, kardex y trámites."""
     alumno = _obtener_o_crear_alumno(
         db,
         datos.numero_control,
@@ -348,6 +448,7 @@ def iniciar_sesion_alumno(datos: LoginAlumnoIn, db: Session = Depends(obtener_db
             "correo_institucional": alumno.correo_institucional,
             "estatus_inscripcion": alumno.estatus_inscripcion,
         },
+        "kardex": _construir_kardex_alumno(db, alumno),
         "tramites": [
             {
                 "id": s.id,
@@ -478,11 +579,53 @@ def resumen_sistema(db: Session = Depends(obtener_db)) -> dict:
 
 
 @app.get("/api/escolar")
-def modulo_escolar(db: Session = Depends(obtener_db)) -> dict:
+def modulo_escolar(
+    numero_control: str | None = None, db: Session = Depends(obtener_db)
+) -> dict:
     materias = db.scalars(select(Materia).order_by(Materia.semestre_sugerido, Materia.clave)).all()
     inscripciones = db.scalars(select(Inscripcion).order_by(Inscripcion.id.desc())).all()
 
+    kardex_alumno: list[dict] = []
+    oferta_alumno: list[dict] = []
+
+    if numero_control:
+        alumno = _obtener_o_crear_alumno(db, numero_control)
+        kardex_alumno = _construir_kardex_alumno(db, alumno)
+        inscritas_ids = {item["materia_id"] for item in kardex_alumno}
+        for m in materias:
+            if m.id not in inscritas_ids:
+                oferta_alumno.append(
+                    {
+                        "id": m.id,
+                        "clave": m.clave,
+                        "materia": m.nombre,
+                        "grupo": f"{m.semestre_sugerido}A",
+                        "docente": m.docente.nombre_completo if m.docente else "Por asignar",
+                        "correo_docente": m.docente.correo if m.docente else "",
+                        "horario": m.horario,
+                        "creditos": m.creditos,
+                        "cupo": 15,
+                    }
+                )
+    else:
+        oferta_alumno = [
+            {
+                "id": m.id,
+                "clave": m.clave,
+                "materia": m.nombre,
+                "grupo": f"{m.semestre_sugerido}A",
+                "docente": m.docente.nombre_completo if m.docente else "Por asignar",
+                "correo_docente": m.docente.correo if m.docente else "",
+                "horario": m.horario,
+                "creditos": m.creditos,
+                "cupo": 15,
+            }
+            for m in materias
+        ]
+
     return {
+        "kardex": kardex_alumno,
+        "oferta": oferta_alumno,
         "materias": [
             {
                 "id": m.id,
@@ -516,9 +659,7 @@ def modulo_escolar(db: Session = Depends(obtener_db)) -> dict:
 
 @app.post("/api/escolar/inscribir")
 def inscribir_materia(datos: NuevaInscripcionIn, db: Session = Depends(obtener_db)) -> dict:
-    alumno = db.scalar(select(Alumno).where(Alumno.numero_control == datos.numero_control))
-    if not alumno:
-        raise HTTPException(404, "Alumno no encontrado.")
+    alumno = _obtener_o_crear_alumno(db, datos.numero_control)
     materia = db.get(Materia, datos.materia_id)
     if not materia:
         raise HTTPException(404, "Materia no encontrada.")
@@ -532,16 +673,33 @@ def inscribir_materia(datos: NuevaInscripcionIn, db: Session = Depends(obtener_d
     if existente:
         raise HTTPException(400, "El alumno ya está inscrito en esa materia en este periodo.")
 
-    estado = "cursando" if alumno.estatus_inscripcion == "inscrito" else "pendiente_pago"
     nueva = Inscripcion(
         alumno_id=alumno.id,
         materia_id=materia.id,
         periodo=datos.periodo,
-        estado=estado,
+        estado="cursando",
     )
     db.add(nueva)
     db.commit()
-    return {"ok": True, "estado": estado}
+    db.refresh(nueva)
+    return {
+        "ok": True,
+        "estado": "Cursando",
+        "inscripcion": {
+            "id": nueva.id,
+            "materia_id": materia.id,
+            "clave": materia.clave,
+            "materia": materia.nombre,
+            "docente": materia.docente.nombre_completo if materia.docente else "Por asignar",
+            "correo_docente": materia.docente.correo if materia.docente else "",
+            "horario": materia.horario,
+            "semestre": materia.semestre_sugerido,
+            "periodo": nueva.periodo,
+            "calificacion": None,
+            "creditos": materia.creditos,
+            "estado": "Cursando",
+        },
+    }
 
 
 @app.patch("/api/docente/inscripciones/{inscripcion_id}/calificacion")
