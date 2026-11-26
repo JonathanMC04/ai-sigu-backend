@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI-SIGU · TecNM Iztapalapa III</title>
+<link rel="icon" href="/static/img/logo1.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      fontFamily:{sans:['"Plus Jakarta Sans"','Inter','system-ui','sans-serif']},
+      colors:{brand:{50:'#eef4ff',100:'#dbe7ff',500:'#2563eb',700:'#143a7d',800:'#0d2d63',900:'#002e6d'}}
+    }
+  }
+};
+</script>
+<style>
+:root{--border:rgba(203,213,225,.78)}
+.label{display:block;margin-bottom:6px;font-size:12px;font-weight:700;color:#334155}
+.field{width:100%;border-radius:12px;border:1px solid #cbd5e1;background:#f8fafc;padding:9px 12px;font-size:13.5px;color:#0f172a;outline:none;transition:.15s}
+.field:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.tab-btn{display:inline-flex;align-items:center;gap:7px;border-radius:12px;padding:8px 14px;font-size:12px;font-weight:700;white-space:nowrap;transition:.15s}
+.card{background:linear-gradient(180deg,#ffffff 0%,#fcfdff 100%);border:1px solid var(--border);border-radius:20px;box-shadow:0 2px 4px rgba(15,23,42,.03),0 18px 38px -20px rgba(15,23,42,.18)}
+.pop{animation:pop .22s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(6px)}}
+.dot{width:6px;height:6px;border-radius:9999px;background:#94a3b8;animation:bnc 1.2s infinite ease-in-out}
+.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes bnc{0%,60%,100%{transform:none;opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+[data-ok]{background:#059669!important}
+</style>
+</head>
+<body class="min-h-screen font-sans text-slate-800 antialiased" style="background:radial-gradient(65rem 30rem at 6% -10%,#cfe0ff 0,transparent 58%),radial-gradient(55rem 28rem at 100% 0,#c7f9e5 0,transparent 55%),radial-gradient(45rem 25rem at 50% 100%,#e0e7ff 0,transparent 60%),#f4f7fb;background-attachment:fixed">
+
+<div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-xs font-semibold text-white shadow-xl"></div>
+
+<!-- ==================== PANTALLA 1: INICIO DE SESIÓN (ALUMNOS / DOCENTES) ==================== -->
+<div id="loginScreen" class="flex min-h-screen items-center justify-center p-4 sm:p-6">
+  <div class="card w-full max-w-5xl overflow-hidden grid lg:grid-cols-[1.08fr_1fr]">
+    <!-- Panel Institucional Izquierdo -->
+    <div class="relative flex flex-col justify-between bg-gradient-to-br from-brand-900 via-brand-800 to-slate-900 p-7 text-white sm:p-9">
+      <div>
+        <div class="flex items-center gap-3 rounded-2xl bg-white/10 p-3 backdrop-blur-md w-fit">
+          <img src="/static/img/Logo-TecNM.png" alt="TecNM" class="h-8 w-auto brightness-0 invert">
+          <span class="h-6 w-px bg-white/25"></span>
+          <img src="/static/img/logo1.png" alt="Iztapalapa III" class="h-9 w-9 object-contain">
+        </div>
+
+        <span class="mt-6 inline-flex items-center gap-1.5 rounded-full bg-emerald-400/15 px-3 py-1 text-[11px] font-bold text-emerald-300 ring-1 ring-emerald-400/30">
+          <i data-lucide="sparkles" class="h-3.5 w-3.5"></i>Sistema Integral Universitario + Agente IA
+        </span>
+        <h1 class="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">AI-SIGU · TecNM Iztapalapa III</h1>
+        <p class="mt-2 text-xs leading-relaxed text-blue-100/90 sm:text-sm">Gestión unificada de trámites escolares, control docente, Mindbox, Teams, Office, Outlook y Gmail desde un solo portal.</p>
+
+        <div class="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-blue-200">Oferta Educativa del Plantel</p>
+          <div class="mt-2.5 grid gap-2 text-xs sm:grid-cols-2">
+            <div>
+              <p class="font-bold text-emerald-300">Modalidad Escolarizada</p>
+              <ul class="mt-1 space-y-1 text-blue-100/90 text-[11px]">
+                <li>• Ingeniería Civil</li>
+                <li>• Ingeniería Informática</li>
+                <li>• Ingeniería Gestión Empresarial</li>
+              </ul>
+            </div>
+            <div>
+              <p class="font-bold text-sky-300">TecNM Virtual</p>
+              <ul class="mt-1 space-y-1 text-blue-100/90 text-[11px]">
+                <li>• Ingeniería Industrial</li>
+                <li>• Ingeniería Gestión Empresarial</li>
+                <li>• Ingeniería Sistemas Computacionales</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-between border-t border-white/15 pt-4 text-[11px] text-blue-200">
+        <span>Sitio oficial del campus</span>
+        <a href="https://iztapalapa3.tecnm.mx/" target="_blank" rel="noopener" class="inline-flex items-center gap-1 font-bold text-white hover:underline">iztapalapa3.tecnm.mx <i data-lucide="external-link" class="h-3 w-3"></i></a>
+      </div>
+    </div>
+
+    <!-- Panel de Acceso Derecho -->
+    <div class="p-7 sm:p-9 flex flex-col justify-center bg-white">
+      <h2 class="text-xl font-extrabold text-slate-900">Iniciar Sesión</h2>
+      <p class="mt-1 text-xs text-slate-500">Selecciona tu perfil institucional para entrar a tu panel personalizado.</p>
+
+      <!-- Selector de Apartado: Alumnos vs Docentes -->
+      <div class="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1.5">
+        <button type="button" id="roleBtnAlumno" onclick="seleccionarRolLogin('alumno')" class="flex items-center justify-center gap-2 rounded-xl bg-brand-900 py-2.5 text-xs font-extrabold text-white shadow-xs transition">
+          <i data-lucide="graduation-cap" class="h-4 w-4"></i>Apartado Alumnos
+        </button>
+        <button type="button" id="roleBtnDocente" onclick="seleccionarRolLogin('docente')" class="flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-extrabold text-slate-600 transition hover:text-slate-900">
+          <i data-lucide="user-check" class="h-4 w-4"></i>Apartado Docentes
+        </button>
+      </div>
+
+      <!-- Formulario Alumno -->
+      <form id="formLoginAlumno" class="mt-5 space-y-3.5">
+        <div>
+          <label class="label">Número de control</label>
+          <input id="loginNc" class="field" required placeholder="Ej. 25120001" value="25120001">
+        </div>
+        <div>
+          <label class="label">Nombre completo</label>
+          <input id="loginNombreAlumno" class="field" required placeholder="Ej. Carlos Mendoza Ruiz" value="Carlos Mendoza Ruiz">
+        </div>
+        <div>
+          <label class="label">Carrera (Escolarizada o Virtual)</label>
+          <select id="loginCarrera" class="field">
+            <optgroup label="Modalidad Escolarizada">
+              <option value="Ingeniería Informática" selected>Escolarizada · Ingeniería Informática</option>
+              <option value="Ingeniería Civil">Escolarizada · Ingeniería Civil</option>
+              <option value="Ingeniería Gestión Empresarial">Escolarizada · Ingeniería Gestión Empresarial</option>
+            </optgroup>
+            <optgroup label="TecNM Virtual">
+              <option value="TecNM Virtual · Ingeniería Industrial">TecNM Virtual · Ingeniería Industrial</option>
+              <option value="TecNM Virtual · Ingeniería Gestión Empresarial">TecNM Virtual · Ingeniería Gestión Empresarial</option>
+              <option value="TecNM Virtual · Ingeniería Sistemas Computacionales">TecNM Virtual · Ingeniería Sistemas Computacionales</option>
+            </optgroup>
+          </select>
+        </div>
+        <button type="submit" class="w-full rounded-xl bg-brand-900 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-brand-800">Entrar al Portal de Alumnos</button>
+
+        <div class="pt-2 border-t border-slate-100">
+          <p class="text-[11px] font-semibold text-slate-400 mb-2">Acceso rápido de prueba (Alumnos):</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="entrarRapidoAlumno('25120001','Carlos Mendoza Ruiz','Ingeniería Informática')" class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-bold text-slate-700 hover:border-brand-500">25120001 · Carlos (3°)</button>
+            <button type="button" onclick="entrarRapidoAlumno('24120045','Ana Sofía López Herrera','Ingeniería Informática')" class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-bold text-slate-700 hover:border-brand-500">24120045 · Ana Sofía (5°)</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Formulario Docente -->
+      <form id="formLoginDocente" class="mt-5 hidden space-y-3.5">
+        <div>
+          <label class="label">Matrícula docente</label>
+          <input id="loginMatriculaDoc" class="field" required placeholder="Ej. DOC-101" value="DOC-101">
+        </div>
+        <div>
+          <label class="label">Nombre del docente</label>
+          <input id="loginNombreDoc" class="field" required placeholder="Ej. Dra. Laura Elena Torres" value="Dra. Laura Elena Torres">
+        </div>
+        <div>
+          <label class="label">Departamento Académico</label>
+          <select id="loginDeptoDoc" class="field">
+            <option value="Ingeniería Informática y Sistemas">Ingeniería Informática y Sistemas</option>
+            <option value="Ingeniería Civil">Ingeniería Civil</option>
+            <option value="Ingeniería Gestión Empresarial">Ingeniería Gestión Empresarial</option>
+            <option value="Ingeniería Industrial">Ingeniería Industrial</option>
+            <option value="Ciencias Básicas">Ciencias Básicas</option>
+          </select>
+        </div>
+        <button type="submit" class="w-full rounded-xl bg-emerald-700 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-emerald-800">Entrar al Portal de Docentes</button>
+
+        <div class="pt-2 border-t border-slate-100">
+          <p class="text-[11px] font-semibold text-slate-400 mb-2">Acceso rápido de prueba (Docentes):</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button type="button" onclick="entrarRapidoDocente('DOC-101','Dra. Laura Elena Torres','Ingeniería Informática y Sistemas')" class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-bold text-slate-700 hover:border-emerald-500">DOC-101 · Dra. Laura</button>
+            <button type="button" onclick="entrarRapidoDocente('DOC-102','Mtro. Jorge Luis Ramírez','Ciencias Básicas')" class="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-left text-[11px] font-bold text-slate-700 hover:border-emerald-500">DOC-102 · Mtro. Jorge</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PANTALLA 2: APLICACIÓN PRINCIPAL ==================== -->
+<div id="appShell" class="hidden">
+  <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+      <div class="flex items-center gap-2.5">
+        <img src="/static/img/Logo-TecNM.png" alt="TecNM" class="h-8 w-auto sm:h-9">
+        <span class="h-7 w-px bg-slate-200"></span>
+        <img src="/static/img/logo1.png" alt="Iztapalapa III" class="h-9 w-9 object-contain">
+      </div>
+
+      <div class="ml-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <h1 class="text-base font-extrabold tracking-tight text-brand-900 sm:text-lg">AI-SIGU</h1>
+          <span id="badgeRol" class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-extrabold text-brand-800 ring-1 ring-brand-200">Portal Alumno</span>
+        </div>
+        <p id="subtituloUsuario" class="truncate text-xs text-slate-500">Sesión activa</p>
+      </div>
+
+      <div class="ml-auto flex flex-wrap items-center gap-2">
+        <span id="health" class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-semibold text-slate-500">
+          <span class="h-2 w-2 rounded-full bg-slate-400"></span><span class="hidden sm:inline">Verificando…</span>
+        </span>
+
+        <button id="btnNew" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
+          <i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i><span class="hidden sm:inline">Limpiar chat</span>
+        </button>
+
+        <button id="btnLogout" class="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800">
+          <i data-lucide="log-out" class="h-3.5 w-3.5"></i><span>Cambiar perfil</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Navegación por Rol -->
+    <nav class="border-t border-slate-100 bg-slate-50/90">
+      <div class="mx-auto flex max-w-7xl items-center gap-1.5 overflow-x-auto px-4 py-2 sm:px-6" id="navTabs">
+        <button data-tab="asistente" data-roles="alumno,docente" class="tab-btn bg-brand-900 text-white shadow-xs"><i data-lucide="sparkles" class="h-3.5 w-3.5"></i>Agente AI-SIGU</button>
+        <button data-tab="plataformas" data-roles="alumno,docente" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="layers" class="h-3.5 w-3.5"></i>Mindbox, Teams, Office y Carreras</button>
+        <button data-tab="escolar" data-roles="alumno" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="book-open-check" class="h-3.5 w-3.5"></i>Mi Kardex y Materias</button>
+        <button data-tab="tramites" data-roles="alumno" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="file-signature" class="h-3.5 w-3.5"></i>Mis Trámites</button>
+        <button data-tab="biblioteca" data-roles="alumno,docente" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="library" class="h-3.5 w-3.5"></i>Biblioteca</button>
+        <button data-tab="finanzas" data-roles="alumno" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="wallet" class="h-3.5 w-3.5"></i>Pagos y Reinscripción</button>
+        <button data-tab="docente" data-roles="docente" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="user-check" class="h-3.5 w-3.5"></i>Actas y Asistencias</button>
+        <button data-tab="avisos" data-roles="alumno,docente" class="tab-btn text-slate-600 hover:bg-white"><i data-lucide="megaphone" class="h-3.5 w-3.5"></i>Avisos del Plantel</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Cinta de KPIs -->
+  <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="card flex items-center gap-3 px-4 py-3">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-700"><i data-lucide="graduation-cap" class="h-4 w-4"></i></span>
+        <div><p class="text-[11px] font-semibold text-slate-400">Carreras TecNM</p><p class="text-base font-extrabold text-slate-900">6 (3 Esc · 3 Virt)</p></div>
+      </div>
+      <div class="card flex items-center gap-3 px-4 py-3">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><i data-lucide="users" class="h-4 w-4"></i></span>
+        <div><p class="text-[11px] font-semibold text-slate-400">Comunidad Demo</p><p id="kpiComunidad" class="text-base font-extrabold text-slate-900">2 Alumnos · 2 Doc</p></div>
+      </div>
+      <div class="card flex items-center gap-3 px-4 py-3">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><i data-lucide="book-open" class="h-4 w-4"></i></span>
+        <div><p class="text-[11px] font-semibold text-slate-400">Materias Activas</p><p id="kpiMaterias" class="text-base font-extrabold text-slate-900">3</p></div>
+      </div>
+      <div class="card flex items-center gap-3 px-4 py-3">
+        <span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700"><i data-lucide="folder-kanban" class="h-4 w-4"></i></span>
+        <div><p class="text-[11px] font-semibold text-slate-400">Trámites Catálogo</p><p id="kpiTramites" class="text-base font-extrabold text-slate-900">40</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISTA 1: AGENTE AI-SIGU -->
+  <main id="view-asistente" class="tab-view mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[350px_minmax(0,1fr)]">
+    <aside class="order-2 space-y-5 lg:order-1 lg:sticky lg:top-[132px] lg:self-start">
+      <section class="card p-5">
+        <div class="mb-3 flex items-center gap-2.5">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-700"><i data-lucide="id-card" class="h-4 w-4"></i></span>
+          <h2 class="text-sm font-bold text-slate-900">Credencial de Sesión</h2>
+          <span id="chipRolAside" class="ml-auto rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-800">Alumno</span>
+        </div>
+        <div class="space-y-2.5">
+          <div><label class="label" id="lblId">Número de control</label><input id="numero_control" class="field" readonly></div>
+          <div><label class="label">Nombre completo</label><input id="nombre" class="field" readonly></div>
+          <div><label class="label" id="lblCarrera">Carrera</label><input id="carrera" class="field" readonly></div>
+        </div>
+        <div id="fichaAlumno" class="mt-3 hidden rounded-xl border border-brand-100 bg-brand-50/60 p-3 text-xs text-slate-700"></div>
+      </section>
+
+      <section class="card p-5">
+        <div class="mb-1.5 flex items-center gap-2.5">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-700"><i data-lucide="badge-check" class="h-4 w-4"></i></span>
+          <h2 class="text-sm font-bold text-slate-900">Evidencias confirmadas</h2>
+          <span id="evCount" class="ml-auto grid h-6 min-w-6 place-items-center rounded-full bg-slate-100 px-1.5 text-xs font-bold text-slate-600">0</span>
+        </div>
+        <p class="mb-3 text-xs leading-relaxed text-slate-500">Agrega comprobantes o hechos verificados para incluirlos en tus solicitudes.</p>
+        <div class="relative">
+          <input id="evInput" class="field pr-[5.5rem]" maxlength="60" autocomplete="off" placeholder="Ej. Comprobante pagado">
+          <span id="evLen" class="pointer-events-none absolute right-12 top-1/2 -translate-y-1/2 text-[11px] font-semibold tabular-nums text-slate-400">0/60</span>
+          <button id="evAdd" aria-label="Agregar evidencia" class="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg bg-brand-900 text-white transition hover:bg-brand-800"><i data-lucide="plus" class="h-4 w-4"></i></button>
+        </div>
+        <ul id="evList" class="mt-3 flex flex-wrap gap-2"></ul>
+        <p id="evEmpty" class="mt-3 rounded-xl border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-400">Aún no agregas evidencias.</p>
+      </section>
+    </aside>
+
+    <section class="card order-1 flex h-[76vh] min-h-[540px] flex-col overflow-hidden lg:order-2">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3.5">
+        <div class="flex items-center gap-3">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 text-white shadow-sm"><i data-lucide="sparkles" class="h-4 w-4"></i></span>
+          <div>
+            <h2 class="text-sm font-bold text-slate-900">Agente AI-SIGU · Ejecución Directa</h2>
+            <p class="text-xs text-slate-500">Consulta trámites, adjunta archivos y envía por Gmail, Outlook o Teams</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <label for="canalEnvio" class="text-[11px] font-semibold text-slate-500">Canal:</label>
+          <select id="canalEnvio" class="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-700 outline-none focus:border-brand-500">
+            <option value="gmail">Gmail</option>
+            <option value="outlook">Outlook</option>
+            <option value="teams">Microsoft Teams</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="scroll" class="relative flex-1 overflow-y-auto scroll-smooth px-4 py-5 sm:px-6"><div id="msgs" class="mx-auto max-w-3xl space-y-5"></div></div>
+
+      <div class="border-t border-slate-100 bg-white/95 p-3 sm:p-4">
+        <div class="mx-auto max-w-3xl space-y-2">
+          <div id="adjuntoBadge" class="hidden items-center justify-between rounded-xl border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-900">
+            <span class="flex items-center gap-2 truncate"><i data-lucide="paperclip" class="h-3.5 w-3.5 shrink-0"></i><span id="adjuntoNombre" class="truncate"></span></span>
+            <button id="quitarAdjunto" class="ml-2 text-brand-700 hover:text-red-600"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
+          </div>
+
+          <div class="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50/75 p-2 transition focus-within:border-brand-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-500/15">
+            <input id="fileInput" type="file" class="hidden">
+            <button id="btnAdjuntar" type="button" title="Adjuntar archivo (PDF, Word, Excel, imagen)" class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-brand-500 hover:text-brand-700">
+              <i data-lucide="paperclip" class="h-4 w-4"></i>
+            </button>
+            <textarea id="msg" rows="1" placeholder="Pide un trámite o di: 'Envía por Gmail/Outlook/Teams mi solicitud…'" class="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-slate-400"></textarea>
+            <button id="send" class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-900 text-white transition hover:bg-brand-800 disabled:opacity-40"><i data-lucide="arrow-up" class="h-5 w-5"></i></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- VISTA 2: MINDBOX, TEAMS, OFFICE, OUTLOOK, GMAIL Y OFERTA EDUCATIVA -->
+  <section id="view-plataformas" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="card flex flex-wrap items-center justify-between gap-4 p-5">
+      <div>
+        <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-bold text-brand-800">Ecosistema Digital & Oferta Educativa · TecNM Iztapalapa III</span>
+        <h2 class="mt-1.5 text-lg font-extrabold text-slate-900">Plataformas Institucionales y Carreras del Plantel</h2>
+        <p class="text-xs text-slate-500">Integración directa con Mindbox, Teams, Office, Outlook, Gmail y el portal oficial del campus.</p>
+      </div>
+      <a href="https://iztapalapa3.tecnm.mx/" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-xl bg-brand-900 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-800">
+        <i data-lucide="external-link" class="h-4 w-4"></i>Visitar iztapalapa3.tecnm.mx
+      </a>
+    </div>
+
+    <!-- Oferta Educativa Oficial (6 carreras de tu imagen) -->
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="card p-5 border-l-4 border-l-brand-900">
+        <span class="rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-bold text-brand-900">Modalidad Escolarizada</span>
+        <h3 class="mt-2 text-base font-extrabold text-slate-900">Ingenierías Presenciales (3)</h3>
+        <ul class="mt-3 space-y-2 text-xs text-slate-700">
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="hard-hat" class="h-4 w-4 text-brand-700"></i>Escolarizada · Ingeniería Civil</li>
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="cpu" class="h-4 w-4 text-brand-700"></i>Escolarizada · Ingeniería Informática</li>
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="briefcase" class="h-4 w-4 text-brand-700"></i>Escolarizada · Ingeniería Gestión Empresarial</li>
+        </ul>
+      </div>
+      <div class="card p-5 border-l-4 border-l-emerald-600">
+        <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">TecNM Virtual</span>
+        <h3 class="mt-2 text-base font-extrabold text-slate-900">Ingenierías en Línea (3)</h3>
+        <ul class="mt-3 space-y-2 text-xs text-slate-700">
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="factory" class="h-4 w-4 text-emerald-700"></i>TecNM Virtual · Ingeniería Industrial</li>
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="briefcase" class="h-4 w-4 text-emerald-700"></i>TecNM Virtual · Ingeniería Gestión Empresarial</li>
+          <li class="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 font-semibold"><i data-lucide="code-2" class="h-4 w-4 text-emerald-700"></i>TecNM Virtual · Ingeniería Sistemas Computacionales</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Plataformas Conectadas -->
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-800 font-extrabold text-sm">MB</span>
+          <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">Control Académico</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Mindbox</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">Gestión de cargas académicas, retícula, calificaciones parciales/finales y validación de pagos escolares.</p>
+        <button onclick="irChatConTexto('¿Cómo gestiono cargas académicas y validación de pagos en Mindbox?')" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Consultar en Agente <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></button>
+      </article>
+
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><i data-lucide="video" class="h-5 w-5"></i></span>
+          <span class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">Aulas y Avisos</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Microsoft Teams</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">Clases virtuales, tutorías y envío inmediato de notificaciones o evidencias desde el Agente AI-SIGU.</p>
+        <button onclick="irChatConTexto('Envía un aviso por Teams sobre mi seguimiento académico')" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Despachar por Teams <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></button>
+      </article>
+
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-50 text-sky-700"><i data-lucide="file-spreadsheet" class="h-5 w-5"></i></span>
+          <span class="rounded-full bg-sky-50 px-2.5 py-0.5 text-[11px] font-bold text-sky-700">Word · Excel · PowerPoint</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Microsoft Office 365</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600"><b>Word</b> (oficios y residencias), <b>Excel</b> (listas y matrices) y <b>PowerPoint</b> (presentaciones). Adjúntalos directamente con 📎 en el chat.</p>
+        <button onclick="irChatConTexto('¿Qué formatos de Word, Excel o PowerPoint debo adjuntar para mi trámite?')" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Ver guía Office <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></button>
+      </article>
+
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><i data-lucide="mail" class="h-5 w-5"></i></span>
+          <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700">Correo Institucional</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Outlook</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">Comunicación oficial institucional para solicitudes a coordinaciones, jefaturas de división y docentes.</p>
+        <button onclick="irChatConTexto('Redacta y envía por Outlook mi solicitud formal al área correspondiente')" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Enviar por Outlook <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></button>
+      </article>
+
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-rose-50 text-rose-700"><i data-lucide="send" class="h-5 w-5"></i></span>
+          <span class="rounded-full bg-rose-50 px-2.5 py-0.5 text-[11px] font-bold text-rose-700">Despacho Rápido</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Gmail</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">Envío ágil de correos con archivos adjuntos (PDF, DOCX, XLSX) y folio de seguimiento AI-SIGU.</p>
+        <button onclick="irChatConTexto('Envía por Gmail mi solicitud con los detalles de mi trámite')" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Enviar por Gmail <i data-lucide="arrow-right" class="h-3.5 w-3.5"></i></button>
+      </article>
+
+      <article class="card p-5">
+        <div class="mb-3 flex items-center justify-between">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><i data-lucide="globe" class="h-5 w-5"></i></span>
+          <span class="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">Sitio Oficial</span>
+        </div>
+        <h3 class="text-sm font-extrabold text-slate-900">Portal TecNM Iztapalapa III</h3>
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">Convocatorias, calendario escolar, áreas y bibliotecas digitales en <span class="font-semibold">iztapalapa3.tecnm.mx</span>.</p>
+        <a href="https://iztapalapa3.tecnm.mx/" target="_blank" rel="noopener" class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline">Abrir portal <i data-lucide="external-link" class="h-3.5 w-3.5"></i></a>
+      </article>
+    </div>
+  </section>
+
+  <!-- VISTA 3: ESCOLAR Y KARDEX (ALUMNO) -->
+  <section id="view-escolar" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="card p-5 lg:col-span-1">
+        <h2 class="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2"><i data-lucide="plus-circle" class="h-4 w-4 text-brand-700"></i>Inscribir Materia</h2>
+        <form id="formInscribir" class="space-y-3">
+          <div><label class="label">Alumno</label><select id="insAlumno" class="field"></select></div>
+          <div><label class="label">Materia</label><select id="insMateria" class="field"></select></div>
+          <button type="submit" class="w-full rounded-xl bg-brand-900 py-2.5 text-xs font-bold text-white hover:bg-brand-800">Registrar inscripción</button>
+        </form>
+      </div>
+      <div class="card p-5 lg:col-span-2 overflow-x-auto">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Oferta Académica (Periodo 2026-2)</h2>
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Clave</th><th>Materia</th><th>Créditos</th><th>Horario</th><th>Docente</th></tr></thead>
+          <tbody id="tblMaterias" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card p-5 overflow-x-auto">
+      <h2 class="text-sm font-bold text-slate-900 mb-3">Kardex e Inscripciones Activas</h2>
+      <table class="w-full text-left text-xs">
+        <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">No. Control</th><th>Alumno</th><th>Materia</th><th>Asistencia</th><th>Calificación</th><th>Estado</th></tr></thead>
+        <tbody id="tblInscripciones" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VISTA 4: DOCENTES (SOLO DOCENTE) -->
+  <section id="view-docente" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="card p-5 overflow-x-auto">
+      <h2 class="text-sm font-bold text-slate-900 mb-1">Portal Docente · Captura de Calificaciones y Pase de Lista</h2>
+      <p class="text-xs text-slate-500 mb-4">Evalúa alumnos inscritos y registra asistencias del periodo activo.</p>
+      <table class="w-full text-left text-xs">
+        <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Alumno</th><th>Materia</th><th>Asistencias</th><th>Calificación</th><th>Acciones</th></tr></thead>
+        <tbody id="tblDocente" class="divide-y divide-slate-100"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VISTA 5: SERVICIOS ESCOLARES -->
+  <section id="view-tramites" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="card p-5">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Nueva Solicitud en Línea</h2>
+        <form id="formSolicitud" class="space-y-3">
+          <div><label class="label">Alumno</label><select id="solAlumno" class="field"></select></div>
+          <div><label class="label">Trámite</label><select id="solTramite" class="field"></select></div>
+          <div><label class="label">Motivo / Detalles</label><textarea id="solMotivo" rows="3" required class="field" placeholder="Describe tu solicitud..."></textarea></div>
+          <button type="submit" class="w-full rounded-xl bg-brand-900 py-2.5 text-xs font-bold text-white hover:bg-brand-800">Generar solicitud</button>
+        </form>
+      </div>
+      <div class="card p-5 lg:col-span-2 overflow-x-auto">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Bandeja de Solicitudes Escolares</h2>
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Folio</th><th>Alumno</th><th>Trámite</th><th>Estado</th><th>Gestionar</th></tr></thead>
+          <tbody id="tblSolicitudes" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA 6: BIBLIOTECA -->
+  <section id="view-biblioteca" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="card p-5">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Solicitar Préstamo de Libro</h2>
+        <form id="formPrestamo" class="space-y-3">
+          <div><label class="label">Alumno</label><select id="bibAlumno" class="field"></select></div>
+          <div><label class="label">Libro disponible</label><select id="bibLibro" class="field"></select></div>
+          <button type="submit" class="w-full rounded-xl bg-brand-900 py-2.5 text-xs font-bold text-white hover:bg-brand-800">Registrar préstamo</button>
+        </form>
+      </div>
+      <div class="card p-5 lg:col-span-2 overflow-x-auto">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Acervo Bibliográfico y Préstamos</h2>
+        <table class="w-full text-left text-xs mb-5">
+          <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Código</th><th>Título</th><th>Autor</th><th>Disponibles</th></tr></thead>
+          <tbody id="tblLibros" class="divide-y divide-slate-100"></tbody>
+        </table>
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Alumno</th><th>Libro</th><th>Multa</th><th>Estado</th><th>Acción</th></tr></thead>
+          <tbody id="tblPrestamos" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA 7: FINANZAS -->
+  <section id="view-finanzas" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="card p-5">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Registrar Pago / Referencia</h2>
+        <form id="formPago" class="space-y-3">
+          <div><label class="label">Alumno</label><select id="pagAlumno" class="field"></select></div>
+          <div><label class="label">Concepto</label><input id="pagConcepto" required class="field" placeholder="Ej. Inscripción semestral"></div>
+          <button type="submit" class="w-full rounded-xl bg-brand-900 py-2.5 text-xs font-bold text-white hover:bg-brand-800">Registrar pago</button>
+        </form>
+      </div>
+      <div class="card p-5 lg:col-span-2 overflow-x-auto">
+        <h2 class="text-sm font-bold text-slate-900 mb-1">Validación de Pagos (Tesorería → Control Escolar)</h2>
+        <p class="text-xs text-slate-500 mb-3">Al validar un pago, el alumno queda habilitado como <b>inscrito</b> automáticamente.</p>
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-200 text-slate-500"><tr><th class="py-2">Alumno</th><th>Concepto</th><th>Periodo</th><th>Estatus Pago</th><th>Acción</th></tr></thead>
+          <tbody id="tblPagos" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA 8: AVISOS -->
+  <section id="view-avisos" class="tab-view hidden mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
+    <div class="grid gap-5 lg:grid-cols-3">
+      <div class="card p-5">
+        <h2 class="text-sm font-bold text-slate-900 mb-3">Publicar Aviso Institucional</h2>
+        <form id="formAviso" class="space-y-3">
+          <div><label class="label">Área emisora</label><input id="avArea" value="SE" maxlength="10" required class="field"></div>
+          <div><label class="label">Título</label><input id="avTitulo" required class="field" placeholder="Ej. Fechas de reinscripción"></div>
+          <div><label class="label">Contenido</label><textarea id="avContenido" rows="3" required class="field"></textarea></div>
+          <button type="submit" class="w-full rounded-xl bg-brand-900 py-2.5 text-xs font-bold text-white hover:bg-brand-800">Publicar aviso</button>
+        </form>
+      </div>
+      <div id="listaAvisos" class="lg:col-span-2 space-y-3"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const API=(location.protocol.startsWith('http')&&location.port==='8000')?location.origin:'http://127.0.0.1:8000';
+const $=s=>document.querySelector(s),icons=()=>lucide.createIcons();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+const arr=v=>v==null||v===''?[]:Array.isArray(v)?v:[v];
+const txt=v=>typeof v==='string'?v:JSON.stringify(v);
+
+let sesion=null,evid=[],busy=false,gen=0,adjuntoActual=null,alumnosCache=[];
+const drafts=[];
+const AV='<span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand-700 to-brand-900 text-white shadow-xs"><i data-lucide="sparkles" class="h-4 w-4"></i></span>';
+
+function notify(msg){
+  const t=$('#toast');t.textContent=msg;t.classList.remove('hidden');
+  clearTimeout(notify._timer);notify._timer=setTimeout(()=>t.classList.add('hidden'),2600);
+}
+
+/* ===== Login Alumnos vs Docentes ===== */
+function seleccionarRolLogin(rol){
+  const esAlumno=rol==='alumno';
+  $('#formLoginAlumno').classList.toggle('hidden',!esAlumno);
+  $('#formLoginDocente').classList.toggle('hidden',esAlumno);
+  $('#roleBtnAlumno').className='flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-extrabold transition '+(esAlumno?'bg-brand-900 text-white shadow-xs':'text-slate-600 hover:text-slate-900');
+  $('#roleBtnDocente').className='flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-extrabold transition '+(!esAlumno?'bg-emerald-700 text-white shadow-xs':'text-slate-600 hover:text-slate-900');
+  icons();
+}
+
+function iniciarSesion(datos){
+  sesion=datos;
+  $('#loginScreen').classList.add('hidden');
+  $('#appShell').classList.remove('hidden');
+
+  const esAlumno=datos.rol==='alumno';
+  $('#badgeRol').textContent=esAlumno?'Portal Alumnos':'Portal Docentes';
+  $('#badgeRol').className='inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ring-1 '+(esAlumno?'bg-brand-50 text-brand-800 ring-brand-200':'bg-emerald-50 text-emerald-800 ring-emerald-200');
+  $('#subtituloUsuario').textContent=`${datos.id} · ${datos.nombre} (${datos.detalle})`;
+
+  $('#chipRolAside').textContent=esAlumno?'Alumno':'Docente';
+  $('#lblId').textContent=esAlumno?'Número de control':'Matrícula docente';
+  $('#lblCarrera').textContent=esAlumno?'Carrera':'Departamento';
+  $('#numero_control').value=datos.id;
+  $('#nombre').value=datos.nombre;
+  $('#carrera').value=datos.detalle;
+
+  document.querySelectorAll('#navTabs [data-tab]').forEach(btn=>{
+    const permitidos=(btn.dataset.roles||'').split(',');
+    btn.classList.toggle('hidden',!permitidos.includes(datos.rol));
+  });
+
+  activarTab('asistente');
+  showEmpty();
+  cargarResumen();
+  notify(`Bienvenido, ${datos.nombre}`);
+}
+
+function entrarRapidoAlumno(nc,nombre,carrera){
+  iniciarSesion({rol:'alumno',id:nc,nombre,detalle:carrera});
+}
+function entrarRapidoDocente(mat,nombre,depto){
+  iniciarSesion({rol:'docente',id:mat,nombre,detalle:depto});
+}
+
+$('#formLoginAlumno').onsubmit=e=>{
+  e.preventDefault();
+  iniciarSesion({
+    rol:'alumno',
+    id:$('#loginNc').value.trim(),
+    nombre:$('#loginNombreAlumno').value.trim(),
+    detalle:$('#loginCarrera').value
+  });
+};
+$('#formLoginDocente').onsubmit=e=>{
+  e.preventDefault();
+  iniciarSesion({
+    rol:'docente',
+    id:$('#loginMatriculaDoc').value.trim(),
+    nombre:$('#loginNombreDoc').value.trim(),
+    detalle:$('#loginDeptoDoc').value
+  });
+};
+$('#btnLogout').onclick=()=>{
+  sesion=null;
+  $('#appShell').classList.add('hidden');
+  $('#loginScreen').classList.remove('hidden');
+  icons();
+};
+
+function activarTab(t){
+  document.querySelectorAll('#navTabs [data-tab]').forEach(b=>{
+    if(b.classList.contains('hidden'))return;
+    b.className='tab-btn '+(b.dataset.tab===t?'bg-brand-900 text-white shadow-xs':'text-slate-600 hover:bg-white');
+  });
+  document.querySelectorAll('.tab-view').forEach(v=>v.classList.toggle('hidden',v.id!=='view-'+t));
+  if(!['asistente','plataformas'].includes(t))cargarModulos();
+}
+
+document.querySelectorAll('#navTabs [data-tab]').forEach(btn=>{
+  btn.addEventListener('click',()=>activarTab(btn.dataset.tab));
+});
+
+function irChatConTexto(texto){
+  activarTab('asistente');
+  $('#msg').value=texto;
+  $('#msg').focus();
+}
+
+function pintarFichaAlumno(){
+  const box=$('#fichaAlumno');
+  if(!sesion||sesion.rol!=='alumno'){box.classList.add('hidden');return;}
+  const encontrada=alumnosCache.find(a=>a.numero_control===sesion.id);
+  if(!encontrada){box.classList.add('hidden');return;}
+  box.classList.remove('hidden');
+  box.innerHTML=`<div class="flex items-center justify-between font-bold text-brand-900"><span>Estatus Escolar</span><span class="rounded-full bg-white px-2 py-0.5 text-[10px] ring-1 ring-brand-200">${esc(encontrada.estatus_inscripcion)}</span></div>
+  <p class="mt-1 text-[11px] text-slate-600">Semestre: <b>${encontrada.semestre}°</b> · Correo: ${esc(encontrada.correo_institucional||'Sin registrar')}</p>`;
+}
+
+/* ===== Subida de archivos adjuntos ===== */
+$('#btnAdjuntar').onclick=()=>$('#fileInput').click();
+$('#fileInput').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const fd=new FormData();fd.append('archivo',f);
+  const r=await fetch(API+'/api/agente/subir-archivo',{method:'POST',body:fd});
+  const data=await r.json();
+  if(data.ok){
+    adjuntoActual=data;
+    $('#adjuntoNombre').textContent=data.nombre;
+    $('#adjuntoBadge').classList.remove('hidden');
+    $('#adjuntoBadge').classList.add('flex');
+    notify('Archivo adjuntado: '+data.nombre);
+  }
+});
+$('#quitarAdjunto').onclick=()=>{
+  adjuntoActual=null;$('#fileInput').value='';
+  $('#adjuntoBadge').classList.add('hidden');$('#adjuntoBadge').classList.remove('flex');
+};
+
+/* ===== Asistente / Agente AI-SIGU ===== */
+const buildPayload=m=>{
+  const canal=$('#canalEnvio').value;
+  const extra=adjuntoActual?`\n[Archivo adjunto disponible: ${adjuntoActual.nombre} | ruta: ${adjuntoActual.ruta}]`:'';
+  const esAlumno=sesion?.rol==='alumno';
+  return{
+    mensaje:`${m} (Rol: ${sesion?.rol||'alumno'}, Canal preferido: ${canal})${extra}`,
+    numero_control:esAlumno?sesion.id:null,
+    nombre:sesion?.nombre||null,
+    carrera:sesion?.detalle||null,
+    evidencias_confirmadas:evid
+  };
+};
+
+const SUG_ALUMNO=[
+  ['file-text','Constancia de estudios','¿Cómo solicito una constancia de estudios?'],
+  ['send','Enviar por Gmail / Outlook','Envía por Gmail mi solicitud de constancia de estudios con folio'],
+  ['video','Notificar en Teams','Envía un aviso por Teams sobre mi avance y evidencias de trámite'],
+  ['wallet','Validación en Mindbox','¿Cómo valido mi pago y carga académica en Mindbox?']
+];
+const SUG_DOCENTE=[
+  ['user-check','Captura de actas','¿Cómo registro calificaciones y asistencias de mis grupos?'],
+  ['video','Aviso grupal en Teams','Redacta y envía un aviso por Teams para mis alumnos de Ingeniería Informática'],
+  ['mail','Correo a Coordinación','Envía por Outlook un reporte de seguimiento docente a División de Estudios'],
+  ['file-spreadsheet','Formatos Office','¿Qué plantillas de Word o Excel se usan para actas y tutorías?']
+];
+
+const push=h=>{
+  const w=document.createElement('div');w.innerHTML=h;const el=w.firstElementChild;
+  $('#msgs').append(el);icons();$('#scroll').scrollTop=$('#scroll').scrollHeight;return el;
+};
+
+function setHealth(ok){
+  const c=ok?['bg-emerald-500 animate-pulse','border-emerald-200 bg-emerald-50 text-emerald-700','Servicio en línea']:['bg-red-500','border-red-200 bg-red-50 text-red-700','Sin conexión'];
+  const h=$('#health');h.className='inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold '+c[1];
+  h.innerHTML=`<span class="h-2 w-2 rounded-full ${c[0]}"></span><span class="hidden sm:inline">${c[2]}</span>`;
+}
+async function health(){try{const r=await fetch(API+'/salud',{cache:'no-store'});setHealth(r.ok)}catch{setHealth(false)}}
+
+function updLen(){$('#evLen').textContent=$('#evInput').value.length+'/60'}
+function renderEv(){
+  $('#evList').innerHTML=evid.map((t,i)=>`<li class="pop inline-flex max-w-full items-center gap-1.5 rounded-full bg-emerald-50 py-1 pl-3 pr-1 text-xs font-medium text-emerald-900 ring-1 ring-emerald-200"><span class="truncate">${esc(t)}</span><button data-rm="${i}" class="grid h-5 w-5 place-items-center rounded-full text-emerald-700 hover:bg-emerald-200/60"><i data-lucide="x" class="h-3 w-3"></i></button></li>`).join('');
+  $('#evCount').textContent=evid.length;$('#evEmpty').classList.toggle('hidden',evid.length>0);icons();
+}
+function addEv(){const i=$('#evInput'),t=i.value.trim();if(!t||evid.length>=20)return;if(!evid.includes(t))evid.push(t);i.value='';updLen();renderEv()}
+
+function showEmpty(){
+  const lista=sesion?.rol==='docente'?SUG_DOCENTE:SUG_ALUMNO;
+  $('#msgs').innerHTML=`<div id="empty" class="pop py-4 text-center sm:py-7">
+    <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-700 to-brand-900 text-white shadow-sm"><i data-lucide="sparkles" class="h-6 w-6"></i></div>
+    <h2 class="text-lg font-extrabold text-slate-900">Hola, ${esc(sesion?.nombre||'bienvenido')}</h2>
+    <p class="mx-auto mt-1 max-w-md text-xs text-slate-500">Consulta trámites, adjunta documentos y despacha correos o avisos por Gmail, Outlook o Teams.</p>
+    <div class="mt-5 grid gap-2 text-left sm:grid-cols-2">${lista.map(([ic,t,q])=>`<button data-q="${esc(q)}" class="group flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 transition hover:border-brand-500/40 hover:shadow-xs"><span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-700"><i data-lucide="${ic}" class="h-4 w-4"></i></span><span class="min-w-0"><b class="block text-xs text-slate-900">${t}</b><span class="block truncate text-[11px] text-slate-500">${esc(q)}</span></span></button>`).join('')}</div></div>`;
+  icons();
+}
+const addUser=t=>push(`<div class="pop flex justify-end"><div class="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-brand-900 px-4 py-2.5 text-sm text-white shadow-xs">${esc(t)}</div></div>`);
+function typing(on){$('#typing')?.remove();if(on)push(`<div class="pop flex gap-3">${AV}<div class="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div></div>`).id='typing'}
+function setBusy(b){busy=b;$('#send').disabled=b;typing(b)}
+
+function norm(b){
+  if(typeof b==='string')b={cuerpo:b};
+  const g=(...k)=>{for(const x of k)if(b[x]!=null&&b[x]!=='')return b[x]};
+  return{folio:g('folio_interno','folio'),aviso:g('aviso_folio'),para:arr(g('destinatario','para')).map(txt).join(', '),asunto:g('asunto'),cuerpo:g('cuerpo')??''};
+}
+
+function draftCard(i){
+  const d=drafts[i];
+  return `<article class="rounded-2xl border border-brand-500/25 bg-white p-4 shadow-sm">
+    <div class="flex flex-wrap items-center gap-2 mb-2">
+      <span class="text-xs font-extrabold text-brand-900">Borrador y Despacho Directo</span>
+      ${d.folio?`<span class="ml-auto rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-bold text-brand-800">Folio: ${esc(d.folio)}</span>`:''}
+    </div>
+    ${d.aviso?`<p class="mb-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-900">${esc(d.aviso)}</p>`:''}
+    <p class="text-xs text-slate-600"><b>Para:</b> ${esc(d.para)} · <b>Asunto:</b> ${esc(d.asunto)}</p>
+    <pre class="mt-2 whitespace-pre-wrap rounded-xl bg-slate-50 p-3 text-xs text-slate-800 font-sans border border-slate-200">${esc(d.cuerpo)}</pre>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <button onclick="despacharTarjeta(${i},'gmail')" class="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700"><i data-lucide="mail" class="h-3.5 w-3.5"></i>Gmail</button>
+      <button onclick="despacharTarjeta(${i},'outlook')" class="inline-flex items-center gap-1.5 rounded-xl bg-sky-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-sky-800"><i data-lucide="inbox" class="h-3.5 w-3.5"></i>Outlook</button>
+      <button onclick="despacharTarjeta(${i},'teams')" class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-indigo-700"><i data-lucide="video" class="h-3.5 w-3.5"></i>Teams</button>
+      <button data-copy="${i}" class="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-brand-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-800"><i data-lucide="copy" class="h-3.5 w-3.5"></i>Copiar</button>
+    </div>
+  </article>`;
+}
+
+async function despacharTarjeta(i,canal){
+  const d=drafts[i];
+  const fd=new FormData();
+  fd.append('canal',canal);
+  fd.append('destinatario',d.para||'dudas.academicas@iztapalapa3.tecnm.mx');
+  fd.append('asunto',d.asunto||'Solicitud AI-SIGU');
+  fd.append('cuerpo',d.cuerpo||'');
+  if(adjuntoActual?.ruta)fd.append('ruta_adjunto',adjuntoActual.ruta);
+  const r=await fetch(API+'/api/agente/despachar',{method:'POST',body:fd});
+  const data=await r.json();
+  notify(data.ok?`Despachado por ${data.canal} (${data.modo||'enviado'})`:'Error al despachar');
+}
+
+function addBot(text,borr){
+  const cards=arr(borr).filter(Boolean).map(b=>{drafts.push(norm(b));return draftCard(drafts.length-1)}).join('');
+  push(`<div class="pop flex gap-3">${AV}<div class="min-w-0 flex-1 space-y-3">${text?`<div class="inline-block max-w-full rounded-2xl border border-slate-200 bg-slate-100/80 px-4 py-3 text-sm text-slate-800">${fmt(text)}</div>`:''}${cards}</div></div>`);
+}
+
+async function send(text){
+  text=(text??$('#msg').value).trim();if(!text||busy)return;
+  $('#empty')?.remove();addUser(text);$('#msg').value='';
+  const g=gen;setBusy(true);
+  try{
+    const r=await fetch(API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(buildPayload(text))});
+    const data=await r.json().catch(()=>({}));
+    if(g!==gen)return;
+    if(!r.ok){addBot(`Error ${r.status}: ${typeof data.detail==='string'?data.detail:JSON.stringify(data.detail)}`);return;}
+    addBot(data.respuesta??'',data.borradores);
+  }catch{if(g===gen)addBot('Sin conexión con el servidor FastAPI.')}
+  finally{if(g===gen)setBusy(false)}
+}
+
+/* ===== KPIs y Módulos SIGU ===== */
+async function cargarResumen(){
+  try{
+    const resumen=await fetch(API+'/api/resumen').then(r=>r.json());
+    alumnosCache=resumen.alumnos||[];
+    $('#kpiComunidad').textContent=`${resumen.kpis?.alumnos??2} Alumnos · ${resumen.kpis?.docentes??2} Doc`;
+    $('#kpiMaterias').textContent=resumen.kpis?.materias??3;
+    $('#kpiTramites').textContent=resumen.kpis?.tramites_catalogo??40;
+    pintarFichaAlumno();
+    return resumen;
+  }catch{return null;}
+}
+
+async function cargarModulos(){
+  const [resumen,escolar,solicitudes,bib,pagos]=await Promise.all([
+    cargarResumen(),
+    fetch(API+'/api/escolar').then(r=>r.json()),
+    fetch(API+'/api/tramites/solicitudes').then(r=>r.json()),
+    fetch(API+'/api/biblioteca').then(r=>r.json()),
+    fetch(API+'/api/finanzas').then(r=>r.json()),
+  ]);
+  if(!resumen)return;
+
+  const optsAlumnos=resumen.alumnos.map(a=>`<option value="${a.numero_control}" ${sesion?.id===a.numero_control?'selected':''}>${a.numero_control} · ${esc(a.nombre_completo)}</option>`).join('');
+  ['#insAlumno','#solAlumno','#bibAlumno','#pagAlumno'].forEach(sel=>{if($(sel))$(sel).innerHTML=optsAlumnos});
+  $('#insMateria').innerHTML=escolar.materias.map(m=>`<option value="${m.id}">${m.clave} · ${esc(m.nombre)}</option>`).join('');
+  $('#solTramite').innerHTML=resumen.tramites_catalogo.map(t=>`<option value="${t.clave}">[${t.area_clave}] ${esc(t.nombre)}</option>`).join('');
+  $('#bibLibro').innerHTML=bib.libros.map(l=>`<option value="${l.id}">${l.codigo} · ${esc(l.titulo)} (${l.ejemplares_disponibles} disp.)</option>`).join('');
+
+  $('#tblMaterias').innerHTML=escolar.materias.map(m=>`<tr><td class="py-2 font-bold">${m.clave}</td><td>${esc(m.nombre)}</td><td>${m.creditos}</td><td>${esc(m.horario)}</td><td>${esc(m.docente)}</td></tr>`).join('');
+  $('#tblInscripciones').innerHTML=escolar.inscripciones.map(i=>`<tr><td class="py-2 font-mono">${i.numero_control}</td><td>${esc(i.alumno)}</td><td>${esc(i.materia)}</td><td>${i.asistencias_presentes}/${i.asistencias_total}</td><td class="font-bold">${i.calificacion_final??'Pendiente'}</td><td><span class="rounded-full bg-slate-100 px-2 py-0.5 font-semibold">${i.estado}</span></td></tr>`).join('');
+
+  $('#tblDocente').innerHTML=escolar.inscripciones.map(i=>`<tr>
+    <td class="py-2">${esc(i.alumno)} (${i.numero_control})</td>
+    <td>${esc(i.materia)}</td>
+    <td>${i.asistencias_presentes}/${i.asistencias_total}</td>
+    <td><input id="cal-${i.id}" type="number" min="0" max="100" value="${i.calificacion_final??''}" class="w-20 rounded-lg border border-slate-200 px-2 py-1 text-xs"></td>
+    <td class="space-x-1">
+      <button onclick="guardarCalif(${i.id})" class="rounded-lg bg-brand-900 px-2.5 py-1 text-white">Guardar calif.</button>
+      <button onclick="pasarLista(${i.id})" class="rounded-lg bg-emerald-600 px-2.5 py-1 text-white">+ Asistencia</button>
+    </td>
+  </tr>`).join('');
+
+  $('#tblSolicitudes').innerHTML=solicitudes.map(s=>`<tr>
+    <td class="py-2 font-mono font-bold">${s.folio}</td>
+    <td>${esc(s.alumno)}</td>
+    <td>${esc(s.tramite_nombre)}</td>
+    <td><span class="rounded-full bg-amber-50 px-2 py-0.5 font-semibold text-amber-800">${s.estado}</span></td>
+    <td><select onchange="cambiarSolicitud(${s.id},this.value)" class="rounded-lg border border-slate-200 px-2 py-1 text-xs">
+      ${['pendiente','en_revision','aprobado','rechazado'].map(st=>`<option value="${st}" ${s.estado===st?'selected':''}>${st}</option>`).join('')}
+    </select></td>
+  </tr>`).join('');
+
+  $('#tblLibros').innerHTML=bib.libros.map(l=>`<tr><td class="py-2 font-mono">${l.codigo}</td><td>${esc(l.titulo)}</td><td>${esc(l.autor)}</td><td class="font-bold">${l.ejemplares_disponibles}</td></tr>`).join('');
+  $('#tblPrestamos').innerHTML=bib.prestamos.map(p=>`<tr>
+    <td class="py-2">${esc(p.alumno)}</td><td>${esc(p.libro)}</td><td>$${p.multa_mxn}</td><td>${p.estado}</td>
+    <td>${p.estado!=='devuelto'?`<button onclick="devolverLibro(${p.id})" class="rounded-lg bg-brand-900 px-2.5 py-1 text-white">Devolver</button>`:'—'}</td>
+  </tr>`).join('');
+
+  $('#tblPagos').innerHTML=pagos.map(p=>`<tr>
+    <td class="py-2">${esc(p.alumno)} <span class="text-slate-400">(${p.estatus_inscripcion_alumno})</span></td>
+    <td>${esc(p.concepto)}</td><td>${p.periodo}</td>
+    <td><span class="rounded-full px-2 py-0.5 font-semibold ${p.estatus==='validado'?'bg-emerald-50 text-emerald-700':'bg-amber-50 text-amber-700'}">${p.estatus}</span></td>
+    <td>${p.estatus!=='validado'?`<button onclick="validarPago(${p.id})" class="rounded-lg bg-emerald-600 px-2.5 py-1 text-white">Validar pago</button>`:'Validado'}</td>
+  </tr>`).join('');
+
+  $('#listaAvisos').innerHTML=resumen.avisos.map(a=>`<article class="card p-4">
+    <div class="flex items-center gap-2 mb-1"><span class="rounded-md bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-800">${esc(a.area_clave)}</span><h3 class="text-sm font-bold text-slate-900">${esc(a.titulo)}</h3></div>
+    <p class="text-xs text-slate-600 leading-relaxed">${esc(a.contenido)}</p>
+  </article>`).join('');
+  icons();
+}
+
+async function guardarCalif(id){
+  const val=parseFloat($('#cal-'+id).value);if(isNaN(val))return;
+  await fetch(`${API}/api/docente/inscripciones/${id}/calificacion`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({calificacion_final:val})});
+  notify('Calificación actualizada');cargarModulos();
+}
+async function pasarLista(id){
+  await fetch(`${API}/api/docente/inscripciones/${id}/asistencia`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fecha:'2026-11-25',presente:true})});
+  notify('Asistencia registrada');cargarModulos();
+}
+async function cambiarSolicitud(id,estado){
+  await fetch(`${API}/api/tramites/solicitudes/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado})});
+  notify('Estado de solicitud actualizado');cargarModulos();
+}
+async function devolverLibro(id){
+  await fetch(`${API}/api/biblioteca/prestamos/${id}/devolver`,{method:'PATCH'});
+  notify('Libro devuelto');cargarModulos();
+}
+async function validarPago(id){
+  await fetch(`${API}/api/finanzas/pagos/${id}/validar`,{method:'PATCH'});
+  notify('Pago validado · Inscripción habilitada');cargarModulos();
+}
+
+$('#formInscribir').onsubmit=async e=>{e.preventDefault();await fetch(API+'/api/escolar/inscribir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_control:$('#insAlumno').value,materia_id:+$('#insMateria').value})});notify('Materia inscrita');cargarModulos()};
+$('#formSolicitud').onsubmit=async e=>{e.preventDefault();await fetch(API+'/api/tramites/solicitudes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_control:$('#solAlumno').value,tramite_clave:$('#solTramite').value,motivo:$('#solMotivo').value})});$('#solMotivo').value='';notify('Solicitud generada');cargarModulos()};
+$('#formPrestamo').onsubmit=async e=>{e.preventDefault();await fetch(API+'/api/biblioteca/prestar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_control:$('#bibAlumno').value,libro_id:+$('#bibLibro').value})});notify('Préstamo registrado');cargarModulos()};
+$('#formPago').onsubmit=async e=>{e.preventDefault();await fetch(API+'/api/finanzas/pagos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numero_control:$('#pagAlumno').value,concepto:$('#pagConcepto').value})});$('#pagConcepto').value='';notify('Pago registrado');cargarModulos()};
+$('#formAviso').onsubmit=async e=>{e.preventDefault();await fetch(API+'/api/avisos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area_clave:$('#avArea').value,titulo:$('#avTitulo').value,contenido:$('#avContenido').value})});$('#avTitulo').value='';$('#avContenido').value='';notify('Aviso publicado');cargarModulos()};
+
+$('#send').onclick=()=>send();
+$('#msg').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+$('#evInput').addEventListener('input',updLen);
+$('#evInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addEv()}});
+$('#evAdd').onclick=addEv;
+$('#btnNew').onclick=()=>{gen++;busy=false;$('#send').disabled=false;drafts.length=0;evid=[];renderEv();$('#quitarAdjunto').click();showEmpty()};
+document.addEventListener('click',async e=>{
+  const q=e.target.closest('[data-q]'),r=e.target.closest('[data-rm]'),c=e.target.closest('[data-copy]');
+  if(q)send(q.dataset.q);
+  if(r){evid.splice(+r.dataset.rm,1);renderEv()}
+  if(c&&!c.dataset.ok){
+    const d=drafts[c.dataset.copy],orig=c.innerHTML;
+    await navigator.clipboard.writeText(`Para: ${d.para}\nAsunto: ${d.asunto}\n\n${d.cuerpo}`);
+    c.dataset.ok=1;c.innerHTML='<i data-lucide="check" class="h-3.5 w-3.5"></i>¡Copiado!';icons();
+    setTimeout(()=>{c.innerHTML=orig;delete c.dataset.ok},2000);
+  }
+});
+
+renderEv();updLen();icons();health();cargarResumen();
+</script>
+</body>
+</html>
